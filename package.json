@@ -1,0 +1,19 @@
+{
+  "name": "nancyjob",
+  "version": "1.0.0",
+  "description": "论文图片自动化下载",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "web",
+    "ui",
+    "自动化"
+  ],
+  "author": "saxonliu",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^1.20.0"
+  }
+}
