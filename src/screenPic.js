@@ -4,8 +4,9 @@ const request = require("request")
 var currentCount = 0;
 var limitCount = 5
 var piclist = [];
-async function getPics(url) {
-    const browser = await puppeteer.launch({
+
+async function getPics(url,event,rendercallback) {
+    let browser = await puppeteer.launch({
         headless: false,
         args: ['--no-sandbox', '--disaable-setuid-sanbox', '--disable-dev-shm-usage', ]
     })
@@ -16,6 +17,7 @@ async function getPics(url) {
     })
     await page.waitForSelector("#bookinfo")
     const bookinfo = await page.$eval("#bookinfo", el => el.innerHTML)
+    rendercallback(event,`开始获取《${bookinfo}》图片列表`)
     console.log("bookinfo", bookinfo)
     await page.waitFor(".readerPager")
     await page.evaluate(() => {
@@ -29,7 +31,6 @@ async function getPics(url) {
                 totalDistance += distance
                 console.log("distance", distance, totalDistance, container.scrollHeight)
                 if (totalDistance >= container.scrollHeight) {
-                    console.log("timer", timer)
                     clearInterval(timer)
                     resovle()
                 }
@@ -39,11 +40,14 @@ async function getPics(url) {
 
 
     piclist = await page.$$eval('.readerImg', el => el.map(item => item.src))
-
+    rendercallback(event,`《${bookinfo}》图片列表获取完成，共${piclist.length}张图片`)
     console.log("piclist", piclist, piclist.length)
-    await page.waitFor(5000)
-    downloadPics(bookinfo.replace(/,/g, ' '))
 
+    await page.waitFor(3000)
+    await browser.close()
+    browser=null
+    rendercallback(event,`开始下载图片`)
+    downloadPics(bookinfo.replace(/,/g, ' '),event,rendercallback)
 }
 
 function generateName(filename) {
@@ -58,18 +62,18 @@ function generateName(filename) {
     }
     return filename
 }
-async function downloadPics(dir) {
+async function downloadPics(dir,event,rendercallback) {
     checkDirExists(dir)
     for (let i = 0; i < limitCount; i++) {
-        excutePicList(dir)
+        excutePicList(dir,event,rendercallback)
     }
 }
 
-function excutePicList(dir) {
+function excutePicList(dir,event,rendercallback) {
     if (currentCount < limitCount) {
         currentCount++
         let picsrc = piclist.pop()
-        requestPic(picsrc, dir)
+        requestPic(picsrc, dir,event,rendercallback)
     }
 }
 
@@ -85,7 +89,7 @@ function checkDirExists(dir)
     }
 }
 
-function requestPic(src, dir) {
+function requestPic(src, dir,event,rendercallback) {
     let splitwords = src.split('/')
     let namewithparam = splitwords[splitwords.length - 1]
     let name = namewithparam.split('?')[0]
@@ -95,25 +99,29 @@ function requestPic(src, dir) {
     let rs = request(src)
     rs.pipe(ws)
     rs.on("end", () => {
-        console.log(name + " 下载成功")
+        console.log(name + " 下载成功",rendercallback)
+        rendercallback(event,name+"下载成功")
         console.log("剩余任务 ", piclist.length)
         currentCount--
         if (piclist.length <= 0) {
             if(currentCount<=0)
                 console.log("所有图片下载完成")
+                rendercallback(event,"所有图片下载完成")
             return
         }
-        excutePicList(dir)
+        excutePicList(dir,event,rendercallback)
     })
     rs.on("error", (err) => {
         currentCount--
         if (piclist.length <= 0) {
             if(currentCount<=0)
             console.log("所有图片下载完成")
+            rendercallback(event,"所有图片下载完成")
             return
         }
-        excutePicList(dir)
         console.log(name + " 下载出错啦", err)
+        rendercallback(event,name + " 下载出错啦,请手动下载："+src)
+        excutePicList(dir,event,rendercallback)
     })
     rs.on("finish", () => {
         console.log("文件写入成功，可以享用你的图片啦")
@@ -134,4 +142,7 @@ function main() {
 // function unitTest() {
 //     requestPic("http://img.sslibrary.com/n/b5d4033a124b5234a7693a52716b5b12MC247337714400/img1/681D93A5EB6BB6239DDCFAF2D8BD646893B48F4C8E9216585330F30483DBCA3E9841D8ADA77A899FF46FFA452BFBFC2361B403AC451E41E9432C59E929A5C5B612108275834BFB3A3B831BABA00F96F543D1FA018B8EB1308B037EF2F058ADE797F90E43C3E1BA56C96C6F84A4D80A9A3F1B/nf1/qw/11084014/3525BB5D1D9B462FAABBACDE6D42453A/000072?zoom=0", 'test')
 // }
-main()
+// main()
+module.exports={
+    getPics:getPics
+}

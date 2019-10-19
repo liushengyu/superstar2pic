@@ -1,20 +1,33 @@
+const {getPics}=require('./screenPic')
 const {
     ipcMain,
     app,
     BrowserWindow
 } = require("electron")
+
+
 const path=require("path")
 
+ipcMain.on("send-message",(event,arg)=>{
+    console.log("arg:",arg)
+    getPics(arg,event,sendMsg2Render)
 
+})
 
 let mainWindow
 
+function sendMsg2Render(event,msg)
+{
+    event.reply("downloadResult",msg)
+}
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
-        height: 600
+        height: 600,
+        webPreferences:{
+            nodeIntegration:true
+        }
     })
-    console.log(path.join(__dirname,"../superstar2pic_page/dist/index.html"))
     mainWindow.loadFile(path.join(__dirname,"../superstar2pic_page/dist/index.html"));
 
     mainWindow.on("closed", () => {
