@@ -19,7 +19,7 @@
     "request": "^2.88.0"
   },
   "devDependencies": {
-    "electron": "^6.0.12",
+    "electron": "^9.1.0",
     "webpack": "^4.41.2"
   }
 }
